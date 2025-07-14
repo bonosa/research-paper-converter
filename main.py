@@ -356,7 +356,6 @@ def get_profile(current_user):
     }), 200
 
 @app.route('/api/convert', methods=['POST'])
-@license_required
 @token_required
 def convert_paper(current_user):
     """Convert PDF paper to Markdown"""
