@@ -36,7 +36,7 @@ except ImportError:
 # Configuration
 SECRET_KEY = os.environ.get("SECRET_KEY", "research-paper-converter-secret-2025")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours to prevent token expiry during upload
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///research_converter.db")
 
 # Trial license configuration (7 days from first run)
@@ -74,8 +74,7 @@ def check_license():
             return True, datetime.now() + timedelta(days=TRIAL_DURATION_DAYS)
     except Exception as e:
         logger.error(f"License check error: {e}")
-        # If file operations fail, allow a temporary 1-day grace period
-        return True, datetime.now() + timedelta(days=1)
+        return False, None
 
 def create_license_file():
     """Create license file on first run"""
@@ -88,10 +87,8 @@ def create_license_file():
         with open(LICENSE_FILE, 'w') as f:
             json.dump(license_data, f, indent=2)
         logger.info("License file created - 7-day trial started")
-        return True
     except Exception as e:
         logger.error(f"Error creating license file: {e}")
-        return False
 
 def license_required(f):
     """Decorator to check license before accessing protected routes"""
@@ -281,12 +278,12 @@ def register_user():
             return jsonify({'detail': 'Missing required fields'}), 400
         
         # Check if user already exists
-        existing_user = User.query.filter_by(email=data['email']).first()
-        if existing_user:
+        existing_email = User.query.filter_by(email=data['email']).first()
+        if existing_email:
             return jsonify({'detail': 'Email already registered'}), 400
         
-        existing_user = User.query.filter_by(username=data['username']).first()
-        if existing_user:
+        existing_username = User.query.filter_by(username=data['username']).first()
+        if existing_username:
             return jsonify({'detail': 'Username already taken'}), 400
         
         # Create new user
@@ -301,6 +298,8 @@ def register_user():
         db.session.add(new_user)
         db.session.commit()
         
+        logger.info(f"New user registered: {new_user.username}")
+        
         return jsonify({
             'id': new_user.id,
             'email': new_user.email,
@@ -311,6 +310,7 @@ def register_user():
         }), 201
         
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Registration error: {e}")
         return jsonify({'detail': 'Registration failed'}), 500
 
@@ -325,7 +325,12 @@ def login_user():
             return jsonify({'detail': 'Missing username or password'}), 400
         
         user = User.query.filter_by(username=data['username']).first()
-        if not user or not check_password_hash(user.hashed_password, data['password']):
+        if not user:
+            logger.info(f"Login attempt with non-existent username: {data['username']}")
+            return jsonify({'detail': 'Incorrect username or password'}), 401
+            
+        if not check_password_hash(user.hashed_password, data['password']):
+            logger.info(f"Login attempt with incorrect password for user: {data['username']}")
             return jsonify({'detail': 'Incorrect username or password'}), 401
         
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -547,42 +552,10 @@ def health_check():
     return jsonify({"status": "healthy"}), 200
 
 @app.route('/', methods=['GET'])
+@license_required
 def home():
     """Home page - serve the HTML interface"""
-    try:
-        is_valid, expiry_time = check_license()
-        if not is_valid:
-            # Return trial expired message as HTML
-            return f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Trial Expired - Research Paper Converter</title>
-                <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-            </head>
-            <body class="bg-dark text-light">
-                <div class="container mt-5">
-                    <div class="row justify-content-center">
-                        <div class="col-md-8 text-center">
-                            <h1 class="display-4 mb-4">🔒 Trial Expired</h1>
-                            <div class="alert alert-warning">
-                                <h4>7-Day Trial Has Ended</h4>
-                                <p>Your trial expired on: <strong>{expiry_time.strftime("%B %d, %Y") if expiry_time else "Unknown"}</strong></p>
-                                <p>This Research Paper Converter had a 7-day trial period.</p>
-                                <p class="mt-3"><em>As mentioned: "More power to those that can change main.py!"</em></p>
-                                <p>Technical users can modify the license system in the source code.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """, 403
-        return render_template('index.html')
-    except Exception as e:
-        logger.error(f"Error in home route: {e}")
-        # If license check fails completely, allow access for Railway compatibility
-        return render_template('index.html')
+    return render_template('index.html')
 
 @app.route('/api', methods=['GET'])
 def api_info():
