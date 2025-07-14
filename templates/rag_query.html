@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}RAG Query Interface{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i data-feather="message-circle" class="text-primary me-2"></i>
+                        RAG Query Interface
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Ask questions about your uploaded documents and get AI-powered responses with context from your research papers.</p>
+                    
+                    <form id="rag-query-form">
+                        <div class="mb-3">
+                            <label for="query" class="form-label">Your Question</label>
+                            <textarea class="form-control" id="query" name="query" rows="3" 
+                                      placeholder="e.g., What are the main challenges in neural network training?" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="context_limit" class="form-label">Context Documents</label>
+                            <select class="form-select" id="context_limit" name="context_limit">
+                                <option value="3">3 documents</option>
+                                <option value="5" selected>5 documents</option>
+                                <option value="10">10 documents</option>
+                            </select>
+                            <div class="form-text">Number of relevant documents to use for context</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i data-feather="send" class="me-1"></i>
+                            Ask Question
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Response Area -->
+            <div id="response-area" class="mt-4" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i data-feather="brain" class="text-success me-2"></i>
+                            AI Response
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="response-content" class="mb-3"></div>
+                        
+                        <div id="context-docs" class="mt-3">
+                            <h6 class="text-muted">Context Documents Used:</h6>
+                            <div id="context-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading Area -->
+            <div id="loading-area" class="mt-4 text-center" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Processing your question...</p>
+            </div>
+            
+            <!-- Error Area -->
+            <div id="error-area" class="mt-4" style="display: none;">
+                <div class="alert alert-danger" role="alert">
+                    <i data-feather="alert-triangle" class="me-2"></i>
+                    <span id="error-message"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('rag-query-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const query = document.getElementById('query').value;
+    const contextLimit = document.getElementById('context_limit').value;
+    
+    // Show loading
+    document.getElementById('loading-area').style.display = 'block';
+    document.getElementById('response-area').style.display = 'none';
+    document.getElementById('error-area').style.display = 'none';
+    
+    try {
+        const response = await fetch('/rag-query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: query,
+                context_limit: parseInt(contextLimit)
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Show response
+            document.getElementById('response-content').innerHTML = 
+                '<div class="p-3 bg-light rounded">' + 
+                data.response.replace(/\n/g, '<br>') + 
+                '</div>';
+            
+            // Show context documents
+            const contextList = document.getElementById('context-list');
+            contextList.innerHTML = '';
+            
+            if (data.context_documents && data.context_documents.length > 0) {
+                data.context_documents.forEach(doc => {
+                    const docItem = document.createElement('div');
+                    docItem.className = 'border-start border-primary border-3 ps-3 mb-2';
+                    docItem.innerHTML = `
+                        <h6 class="mb-1">${doc.title}</h6>
+                        <small class="text-muted">${doc.authors}</small>
+                    `;
+                    contextList.appendChild(docItem);
+                });
+            } else {
+                contextList.innerHTML = '<p class="text-muted">No context documents found</p>';
+            }
+            
+            document.getElementById('response-area').style.display = 'block';
+        } else {
+            // Show error
+            document.getElementById('error-message').textContent = data.error || 'Unknown error occurred';
+            document.getElementById('error-area').style.display = 'block';
+        }
+    } catch (error) {
+        document.getElementById('error-message').textContent = 'Network error: ' + error.message;
+        document.getElementById('error-area').style.display = 'block';
+    } finally {
+        document.getElementById('loading-area').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

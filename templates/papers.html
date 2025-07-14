@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Papers - ModelMaster</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            padding-top: 50px;
+        }
+        .paper-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .paper-card:hover {
+            transform: translateY(-5px);
+        }
+        .back-btn {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="btn btn-outline-light back-btn">
+            <i class="bi bi-arrow-left"></i> Back to Home
+        </a>
+        
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-white mb-4">All Processed Papers</h1>
+                <div id="papers-container">
+                    <div class="text-center text-white">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading papers...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Load papers on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/papers')
+                .then(response => response.json())
+                .then(data => {
+                    displayPapers(data.papers);
+                })
+                .catch(error => {
+                    document.getElementById('papers-container').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h4><i class="bi bi-exclamation-triangle"></i> Error</h4>
+                            <p>Failed to load papers: ${error.message}</p>
+                        </div>
+                    `;
+                });
+        });
+        
+        function displayPapers(papers) {
+            const container = document.getElementById('papers-container');
+            
+            if (papers.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-white">
+                        <i class="bi bi-file-earmark-x" style="font-size: 4rem; opacity: 0.5;"></i>
+                        <h3>No papers found</h3>
+                        <p>Upload your first research paper to get started!</p>
+                        <a href="/" class="btn btn-light">
+                            <i class="bi bi-upload"></i> Upload Paper
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = papers.map(paper => `
+                <div class="paper-card">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5>${paper.title}</h5>
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-person"></i> ${paper.authors}
+                            </p>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-processor"></i> Processed with ${paper.processor}
+                                <span class="ms-3">
+                                    <i class="bi bi-clock"></i> ${new Date(paper.processed_at).toLocaleString()}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="/download/${paper.id}" class="btn btn-primary">
+                                <i class="bi bi-download"></i> Download JSON
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}{{ paper.title }} - Research Paper Converter{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Paper Header -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h1 class="card-title">{{ paper.title }}</h1>
+                        {% if paper.authors %}
+                            <p class="text-muted mb-2">
+                                <i data-feather="user"></i>
+                                {{ paper.authors }}
+                            </p>
+                        {% endif %}
+                        <p class="text-muted">
+                            <i data-feather="calendar"></i>
+                            Uploaded {% if paper.upload_date %}{{ paper.upload_date.strftime('%B %d, %Y at %I:%M %p') }}{% else %}Unknown date{% endif %}
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-{{ 'success' if paper.processing_status == 'completed' else 'warning' if paper.processing_status == 'processing' else 'danger' if paper.processing_status == 'failed' else 'secondary' }} status-badge" 
+                              data-paper-id="{{ paper.id }}" data-status="{{ paper.processing_status }}">
+                            {{ paper.processing_status.title() }}
+                            {% if paper.processing_status == 'processing' %}
+                                <span class="processing-indicator ms-2"></span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Paper Actions -->
+                <div class="paper-actions">
+                    {% if paper.processing_status == 'completed' %}
+                        <a href="{{ url_for('export_paper', paper_id=paper.id) }}" class="btn btn-primary">
+                            <i data-feather="download"></i>
+                            Export JSON
+                        </a>
+                    {% endif %}
+                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('{{ paper.title }}')">
+                        <i data-feather="copy"></i>
+                        Copy Title
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Status -->
+    {% if paper.processing_status == 'processing' %}
+        <div class="col-12 mb-4">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <span class="processing-indicator me-2"></span>
+                    <div>
+                        <strong>Processing in Progress</strong>
+                        <div class="status-text">AI is analyzing and structuring the paper content...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif paper.processing_status == 'failed' %}
+        <div class="col-12 mb-4">
+            <div class="alert alert-danger">
+                <i data-feather="alert-circle"></i>
+                <strong>Processing Failed</strong>
+                <p class="mb-0">The paper could not be processed. Please try uploading again.</p>
+            </div>
+        </div>
+    {% elif paper.processing_status == 'pending' %}
+        <div class="col-12 mb-4">
+            <div class="alert alert-warning">
+                <i data-feather="clock"></i>
+                <strong>Processing Queued</strong>
+                <div class="status-text">Paper is queued for processing.</div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Abstract -->
+    {% if paper.abstract %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i data-feather="file-text"></i>
+                        Abstract
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ paper.abstract }}</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Raw JSON Display (Always Show if Available) -->
+    {% if structured_content %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i data-feather="code"></i>
+                        Raw JSON Data
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="copyJsonToClipboard()">
+                        <i data-feather="copy"></i>
+                        Copy JSON
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="json-viewer">
+                        <pre id="json-content" class="bg-dark text-light p-3 rounded" style="max-height: 600px; overflow-y: auto;"><code>{{ structured_content | tojson(indent=2) | safe }}</code></pre>
+                    </div>
+                    <script>
+                        function copyJsonToClipboard() {
+                            const jsonContent = document.getElementById('json-content').textContent;
+                            navigator.clipboard.writeText(jsonContent).then(() => {
+                                showAlert('JSON copied to clipboard!', 'success');
+                            });
+                        }
+                    </script>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Structured Content -->
+    {% if paper.processing_status == 'completed' and structured_content %}
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i data-feather="layers"></i>
+                        Structured Content
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="structured-content">
+                        <!-- Key Information -->
+                        {% if structured_content.get('research_domain') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Research Domain</h6>
+                                <p>{{ structured_content.research_domain }}</p>
+                            </div>
+                        {% endif %}
+
+                        {% if structured_content.get('research_type') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Research Type</h6>
+                                <p>{{ structured_content.research_type }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Key Findings -->
+                        {% if structured_content.get('key_findings') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Key Findings</h6>
+                                <ul>
+                                    {% for finding in structured_content.key_findings %}
+                                        <li>{{ finding }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        <!-- Contributions -->
+                        {% if structured_content.get('contributions') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Contributions</h6>
+                                <ul>
+                                    {% for contribution in structured_content.contributions %}
+                                        <li>{{ contribution }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        <!-- Methodology -->
+                        {% if structured_content.get('methodology') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Methodology</h6>
+                                <p class="section-content">{{ structured_content.methodology }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Keywords -->
+                        {% if structured_content.get('keywords') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Keywords</h6>
+                                <div>
+                                    {% for keyword in structured_content.keywords %}
+                                        <span class="badge bg-secondary me-1">{{ keyword }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Sections -->
+                        {% if structured_content.get('sections') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Sections</h6>
+                                <div class="accordion" id="sectionsAccordion">
+                                    {% for section_name, section_content in structured_content.sections.items() %}
+                                        {% if section_content %}
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header" id="section-{{ loop.index }}">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ loop.index }}">
+                                                        {{ section_name.title() }}
+                                                    </button>
+                                                </h2>
+                                                <div id="collapse-{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#sectionsAccordion">
+                                                    <div class="accordion-body">
+                                                        {{ section_content }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metadata and Technical Details -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i data-feather="info"></i>
+                        Metadata
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm metadata-table">
+                        <tr>
+                            <td><strong>File Size:</strong></td>
+                            <td>{% if paper.file_size %}{{ "%.2f"|format(paper.file_size / 1024) }} KB{% else %}Unknown{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pages:</strong></td>
+                            <td>{{ metadata.get('total_pages', 'N/A') }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Words:</strong></td>
+                            <td>{{ metadata.get('word_count', 'N/A') }}</td>
+                        </tr>
+                        {% if structured_content.get('complexity_level') %}
+                            <tr>
+                                <td><strong>Complexity:</strong></td>
+                                <td>{{ structured_content.complexity_level.title() }}</td>
+                            </tr>
+                        {% endif %}
+                        {% if structured_content.get('novelty_score') %}
+                            <tr>
+                                <td><strong>Novelty:</strong></td>
+                                <td>{{ structured_content.novelty_score }}</td>
+                            </tr>
+                        {% endif %}
+                        {% if structured_content.get('reproducibility') %}
+                            <tr>
+                                <td><strong>Reproducibility:</strong></td>
+                                <td>{{ structured_content.reproducibility.title() }}</td>
+                            </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Technical Details -->
+            {% if structured_content.get('technical_details') %}
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i data-feather="settings"></i>
+                            Technical Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% set tech_details = structured_content.technical_details %}
+                        {% if tech_details.get('algorithms_used') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Algorithms</h6>
+                                <ul class="list-unstyled">
+                                    {% for algo in tech_details.algorithms_used %}
+                                        <li><small>{{ algo }}</small></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        {% if tech_details.get('tools_frameworks') %}
+                            <div class="mb-3">
+                                <h6 class="text-primary">Tools & Frameworks</h6>
+                                <ul class="list-unstyled">
+                                    {% for tool in tech_details.tools_frameworks %}
+                                        <li><small>{{ tool }}</small></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+    {% endif %}
+</div>
+{% endblock %}

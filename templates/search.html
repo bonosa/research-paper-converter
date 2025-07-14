@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}AI Search - Research Paper Converter{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">
+                <i data-feather="search" class="me-3"></i>
+                RAG Semantic Search
+            </h1>
+            <p class="lead text-muted">
+                Ask questions about your research papers using advanced semantic search and AI-powered retrieval
+            </p>
+            <div class="badge bg-primary mb-3">
+                <i data-feather="cpu" class="me-1"></i>
+                Powered by Claude Sonnet 4 & Vector Embeddings
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('search_papers') }}">
+                    <div class="mb-3">
+                        <label for="search-query" class="form-label">
+                            <i data-feather="message-square" class="me-2"></i>
+                            Ask your research question using natural language
+                        </label>
+                        <input type="text" class="form-control form-control-lg" 
+                               id="search-query" name="q" 
+                               placeholder="e.g., What are attention mechanisms? How do transformers work? Compare different architectures..."
+                               required>
+                        <input type="hidden" name="type" value="mcp">
+                        <div class="form-text">
+                            <i data-feather="info" class="me-1"></i>
+                            Uses semantic similarity to find relevant content across your papers
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg px-4" id="search-button">
+                            <span class="search-btn-content">
+                                <i data-feather="zap" class="me-2"></i>
+                                RAG Search & Analyze
+                            </span>
+                            <span class="search-btn-loading d-none">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Processing with AI...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Examples -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h3 class="text-center mb-4">Example Questions</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i data-feather="cpu"></i>
+                            Technical Questions
+                        </h5>
+                        <ul class="list-unstyled">
+                            <li>• What are attention mechanisms?</li>
+                            <li>• How do transformers work?</li>
+                            <li>• What is multi-head attention?</li>
+                            <li>• Explain neural network architectures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i data-feather="bar-chart"></i>
+                            Research Questions
+                        </h5>
+                        <ul class="list-unstyled">
+                            <li>• What are the key contributions?</li>
+                            <li>• What datasets were used?</li>
+                            <li>• What methods were compared?</li>
+                            <li>• What are the main findings?</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Available Papers -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h3 class="text-center mb-4">Available Papers</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Advanced Neural Network Architectures for Natural Language Processing</h6>
+                        <p class="card-text text-muted small">
+                            <i data-feather="user"></i>
+                            Dr. Sarah Chen, Dr. Michael Rodriguez, Dr. Lisa Wang
+                        </p>
+                        <span class="badge bg-primary">Transformer Architecture</span>
+                        <span class="badge bg-info">Multi-head Attention</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Attention Is All You Need: A Comprehensive Review</h6>
+                        <p class="card-text text-muted small">
+                            <i data-feather="user"></i>
+                            Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit
+                        </p>
+                        <span class="badge bg-success">Attention Mechanism</span>
+                        <span class="badge bg-warning">Sequence Modeling</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

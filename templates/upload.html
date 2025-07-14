@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Paper - Research Paper Converter{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i data-feather="upload"></i>
+                    Upload Research Paper
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <!-- Upload Area -->
+                    <div id="upload-area" class="upload-area mb-4" onclick="document.getElementById('file-input').click()">
+                        <input type="file" id="file-input" name="file" accept=".pdf" required style="display: none;">
+                        <div class="upload-content">
+                            <i data-feather="upload-cloud" class="text-primary mb-3" style="width: 64px; height: 64px;"></i>
+                            <h5>Drop your PDF here or click to browse</h5>
+                            <p class="text-muted">Maximum file size: 16MB</p>
+                            <p class="text-muted">Supported format: PDF</p>
+                        </div>
+                    </div>
+
+                    <!-- File Info -->
+                    <div id="file-info" class="d-none">
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <i data-feather="file-text" class="me-2"></i>
+                                <div>
+                                    <strong id="file-name">No file selected</strong>
+                                    <br>
+                                    <small id="file-size">0 bytes</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" id="upload-btn" class="btn btn-primary btn-lg" disabled>
+                            <span class="upload-btn-content">
+                                <i data-feather="upload"></i>
+                                Upload and Process Paper
+                            </span>
+                            <span class="upload-btn-loading d-none">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Uploading & Processing...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Processing Info -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="info"></i>
+                    What happens next?
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i data-feather="file-text"></i>
+                            1. PDF Analysis
+                        </h6>
+                        <p class="small text-muted">
+                            Extract text, equations, images, and metadata from your PDF
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">
+                            <i data-feather="cpu"></i>
+                            2. AI Processing
+                        </h6>
+                        <p class="small text-muted">
+                            AI analyzes and structures the content into organized sections
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-info">
+                            <i data-feather="layers"></i>
+                            3. Structured Output
+                        </h6>
+                        <p class="small text-muted">
+                            Generate clean JSON format optimized for AI consumption
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-warning">
+                            <i data-feather="download"></i>
+                            4. Export & Use
+                        </h6>
+                        <p class="small text-muted">
+                            Download structured data or use it in your applications
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supported Features -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="check-circle"></i>
+                    Supported Features
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                Text extraction and OCR
+                            </li>
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                Section identification
+                            </li>
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                Reference extraction
+                            </li>
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                Equation detection
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                Image/diagram extraction
+                            </li>
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                Metadata analysis
+                            </li>
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                Semantic structuring
+                            </li>
+                            <li class="mb-2">
+                                <i data-feather="check" class="text-success"></i>
+                                JSON export
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update file display when file is selected
+document.getElementById('file-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        document.getElementById('file-name').textContent = file.name;
+        document.getElementById('file-size').textContent = formatFileSize(file.size);
+        document.getElementById('file-info').classList.remove('d-none');
+        document.getElementById('upload-btn').disabled = false;
+    }
+});
+
+// Handle upload form submission with loading state
+document.querySelector('form[enctype="multipart/form-data"]').addEventListener('submit', function(e) {
+    const uploadBtn = document.getElementById('upload-btn');
+    const fileInput = document.getElementById('file-input');
+    
+    // Check if file is selected
+    if (!fileInput.files.length) {
+        e.preventDefault();
+        alert('Please select a PDF file to upload');
+        return;
+    }
+    
+    // Show loading state
+    const normalContent = uploadBtn.querySelector('.upload-btn-content');
+    const loadingContent = uploadBtn.querySelector('.upload-btn-loading');
+    
+    if (normalContent && loadingContent) {
+        normalContent.classList.add('d-none');
+        loadingContent.classList.remove('d-none');
+    }
+    
+    uploadBtn.disabled = true;
+});
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Add drag and drop functionality
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('file-input');
+
+uploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+});
+
+uploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+});
+
+uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.type === 'application/pdf') {
+            fileInput.files = files;
+            fileInput.dispatchEvent(new Event('change'));
+        } else {
+            alert('Please upload a PDF file only');
+        }
+    }
+});
+</script>
+{% endblock %}
