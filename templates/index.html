@@ -340,6 +340,7 @@
                 if (response.ok) {
                     authToken = data.access_token;
                     localStorage.setItem('authToken', authToken);
+                    console.log('Auth token set:', authToken ? 'Yes' : 'No');
                     await fetchProfile();
                     bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
                     showDashboard();
@@ -431,18 +432,30 @@
             if (file.type === 'application/pdf') {
                 fileNameSpan.textContent = file.name;
                 selectedFileDiv.classList.remove('hidden');
-                fileInput.files = null;
                 
                 // Store file for upload
                 window.selectedFile = file;
             } else {
                 alert('Please select a PDF file');
+                fileInput.value = '';
             }
         }
 
         // Upload file
         async function uploadFile() {
-            if (!window.selectedFile) return;
+            if (!window.selectedFile) {
+                alert('Please select a file first');
+                return;
+            }
+
+            // Check if we have a valid auth token
+            if (!authToken) {
+                document.getElementById('uploadStatus').innerHTML = '<div class="alert alert-danger">Please login first</div>';
+                return;
+            }
+
+            console.log('Starting upload with token:', authToken ? 'Present' : 'Missing');
+            console.log('Current user:', currentUser ? currentUser.username : 'None');
 
             const formData = new FormData();
             formData.append('file', window.selectedFile);
@@ -450,7 +463,7 @@
             const uploadBtn = document.getElementById('uploadBtn');
 
             uploadBtn.disabled = true;
-            statusDiv.innerHTML = '<div class="alert alert-info">Converting paper...</div>';
+            statusDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split me-2"></i>Converting paper... This may take a moment.</div>';
 
             try {
                 const response = await fetch('/api/convert', {
@@ -461,22 +474,40 @@
                     body: formData
                 });
 
+                console.log('Upload response status:', response.status);
                 const data = await response.json();
+                console.log('Upload response data:', data);
 
                 if (response.ok) {
                     statusDiv.innerHTML = `<div class="alert alert-success">
-                        <strong>Success!</strong> Paper converted successfully.<br>
+                        <strong><i class="bi bi-check-circle me-2"></i>Success!</strong> Paper converted successfully.<br>
                         <strong>Title:</strong> ${data.title}<br>
                         <strong>Processor:</strong> ${data.processor_used}<br>
                         <strong>Content Length:</strong> ${data.content_length || 'N/A'} characters
                     </div>`;
+                    
+                    // Clear selection and reset form
                     selectedFileDiv.classList.add('hidden');
+                    fileInput.value = '';
+                    window.selectedFile = null;
+                    
+                    // Refresh papers list
                     loadPapers();
+                } else if (response.status === 401) {
+                    // Token expired, try to refresh
+                    console.log('Token expired, clearing auth');
+                    statusDiv.innerHTML = '<div class="alert alert-warning">Session expired. Please login again.</div>';
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                    currentUser = null;
+                    updateUI();
                 } else {
-                    statusDiv.innerHTML = `<div class="alert alert-danger">${data.detail}</div>`;
+                    console.log('Upload failed with status:', response.status);
+                    statusDiv.innerHTML = `<div class="alert alert-danger">${data.detail || 'Upload failed'}</div>`;
                 }
             } catch (error) {
-                statusDiv.innerHTML = `<div class="alert alert-danger">Upload failed</div>`;
+                console.error('Upload error:', error);
+                statusDiv.innerHTML = `<div class="alert alert-danger">Upload failed. Please try again.</div>`;
             } finally {
                 uploadBtn.disabled = false;
             }
