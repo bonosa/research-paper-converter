@@ -74,7 +74,8 @@ def check_license():
             return True, datetime.now() + timedelta(days=TRIAL_DURATION_DAYS)
     except Exception as e:
         logger.error(f"License check error: {e}")
-        return False, None
+        # If file operations fail, allow a temporary 1-day grace period
+        return True, datetime.now() + timedelta(days=1)
 
 def create_license_file():
     """Create license file on first run"""
@@ -87,8 +88,10 @@ def create_license_file():
         with open(LICENSE_FILE, 'w') as f:
             json.dump(license_data, f, indent=2)
         logger.info("License file created - 7-day trial started")
+        return True
     except Exception as e:
         logger.error(f"Error creating license file: {e}")
+        return False
 
 def license_required(f):
     """Decorator to check license before accessing protected routes"""
@@ -545,10 +548,42 @@ def health_check():
     return jsonify({"status": "healthy"}), 200
 
 @app.route('/', methods=['GET'])
-@license_required
 def home():
     """Home page - serve the HTML interface"""
-    return render_template('index.html')
+    try:
+        is_valid, expiry_time = check_license()
+        if not is_valid:
+            # Return trial expired message as HTML
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Trial Expired - Research Paper Converter</title>
+                <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+            </head>
+            <body class="bg-dark text-light">
+                <div class="container mt-5">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8 text-center">
+                            <h1 class="display-4 mb-4">🔒 Trial Expired</h1>
+                            <div class="alert alert-warning">
+                                <h4>7-Day Trial Has Ended</h4>
+                                <p>Your trial expired on: <strong>{expiry_time.strftime("%B %d, %Y") if expiry_time else "Unknown"}</strong></p>
+                                <p>This Research Paper Converter had a 7-day trial period.</p>
+                                <p class="mt-3"><em>As mentioned: "More power to those that can change main.py!"</em></p>
+                                <p>Technical users can modify the license system in the source code.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, 403
+        return render_template('index.html')
+    except Exception as e:
+        logger.error(f"Error in home route: {e}")
+        # If license check fails completely, allow access for Railway compatibility
+        return render_template('index.html')
 
 @app.route('/api', methods=['GET'])
 def api_info():
